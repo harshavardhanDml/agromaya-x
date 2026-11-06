@@ -1,0 +1,113 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><title>BioChar Connect</title>
+<style>
+:root{--bg:#f6f1e3;--card:#fff;--ink:#1b2a21;--mut:#5d6b61;--g1:#12372a;--g2:#1f9d6b;--ye:#d9b43c;--rd:#c4493a;--ln:#e2dcc8;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1a14;--card:#16251c;--ink:#eaf1e6;--mut:#9db0a2;--ln:#26382c;--g1:#0b2219}}
+html{color-scheme:light dark}*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.app{display:flex;min-height:100vh}.side{width:210px;background:var(--g1);color:#eaf1e6;padding:16px 10px;flex-shrink:0}
+.side h1{font:700 17px Georgia,serif;margin:0 6px 4px}.side small{display:block;margin:0 6px 14px;color:#9fc4b0;font-size:11px}
+.side button{display:block;width:100%;text-align:left;background:none;border:0;color:#cfe3d6;padding:9px 10px;border-radius:7px;cursor:pointer;font:inherit}
+.side button.on,.side button:hover{background:#1f4d3a;color:#fff}.main{flex:1;padding:18px;min-width:0}
+.top{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:14px}.top h2{margin:0;font:700 20px Georgia,serif}
+.card{background:var(--card);border:1px solid var(--ln);border-radius:10px;padding:14px;margin-bottom:14px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-bottom:14px}.kpi b{display:block;font-size:22px;color:var(--g2)}.kpi span{color:var(--mut);font-size:12px}
+.tw{overflow-x:auto}table{border-collapse:collapse;width:100%;min-width:560px}th,td{text-align:left;padding:7px 8px;border-bottom:1px solid var(--ln);font-size:13px}th{color:var(--mut);font-weight:600}
+.b{display:inline-block;padding:2px 8px;border-radius:99px;font-size:11px;font-weight:600;background:#e4efe8;color:#14533b}.b.y{background:#f6ecc2;color:#6d5a0f}.b.r{background:#f6d9d4;color:#8a2c20}.b.n{background:#e8e8e2;color:#444}
+button.p,button.s{border:0;border-radius:7px;padding:6px 11px;cursor:pointer;font:inherit;font-weight:600}button.p{background:var(--g2);color:#fff}button.s{background:var(--ln);color:var(--ink)}
+input,select{font:inherit;padding:6px 8px;border:1px solid var(--ln);border-radius:7px;background:var(--card);color:var(--ink);max-width:100%}
+.two{display:grid;grid-template-columns:2fr 1fr;gap:14px}.form{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}.form label{font-size:12px;color:var(--mut);display:flex;flex-direction:column;gap:3px}
+.note{font-size:12px;color:var(--mut)}.sim{background:#f6ecc2;color:#6d5a0f;padding:4px 8px;border-radius:6px;font-size:11px;display:inline-block}
+.login{max-width:560px;margin:8vh auto;padding:20px;text-align:center}.login h1{font:700 30px Georgia,serif;color:var(--g2);margin:0}.login .card{text-align:left;cursor:pointer}.login .card:hover{border-color:var(--g2)}
+.toast{position:fixed;bottom:16px;right:16px;background:var(--g1);color:#fff;padding:10px 14px;border-radius:8px;max-width:300px;z-index:9}
+@media(max-width:760px){.app{flex-direction:column}.side{width:100%;display:flex;flex-wrap:wrap;gap:4px;padding:8px}.side h1,.side small{display:none}.side button{width:auto}.two{grid-template-columns:1fr}}
+</style></head><body><div id="root"></div><div id="t"></div>
+<script>
+const CROPS={Paddy:20,Maize:15,Sugarcane:40,Ragi:10};
+const cfg={cr:100,bonus:10,cash:5};
+const GPS=[{id:'G1',name:'Hullahalli GP',dist:'Mysuru',x:150,y:290},{id:'G2',name:'Kalale GP',dist:'Mysuru',x:230,y:330},{id:'G3',name:'Sindhanur GP',dist:'Raichur',x:300,y:90},{id:'G4',name:'Maddur GP',dist:'Mandya',x:200,y:230},{id:'G5',name:'Davangere Rural GP',dist:'Davangere',x:330,y:170}];
+GPS.forEach(g=>g.stock={});
+const NM=['Ramesh Gowda','Lakshmi Devi','Mahadev Patil','Savitha K','Basavaraj H','Kavitha R','Manjunath S','Geetha N','Shivanna','Rukmini B','Nagaraj T','Shobha M','Venkatesh','Anitha G','Siddappa'];
+const CL=['Paddy','Maize','Sugarcane','Ragi','Paddy'];
+const VIL=['Hullahalli','Kalale','Sindhanur','Maddur','Hebbal'];
+const FM=NM.map((n,i)=>({id:'F'+String(i+1).padStart(3,'0'),name:n+' (demo)',ph:'98000'+(10000+i*371),vil:VIL[i%5]+' V'+(i%3+1),gp:GPS[i%5].id,area:+(2+(i*7%9)*.8).toFixed(1),crop:CL[i%5],cr:0,cash:0,qty:0,hist:[]}));
+const poly=(g,i)=>{const a=i*1.3+(i%5),r=22+(i%4)*9,cx=g.x+Math.cos(a)*r,cy=g.y+Math.sin(a)*r,s=9+(i%3)*3;return[[cx-s,cy-s*.7],[cx+s,cy-s],[cx+s*1.1,cy+s*.6],[cx-s*.4,cy+s]]};
+const FL=FM.map((f,i)=>({id:'FLD-'+(100+i),fid:f.id,st:i%3==0?'ready':'growing',ndvi:(i%3==0?.38:.7).toFixed(2),harv:i%3==0?'Nov 2026':'Jan-Feb 2027',poly:poly(GPS.find(g=>g.id==f.gp),i)}));
+const COS=['GreenKarna Biochar Pvt Ltd (demo)','Cauvery BioChar Works (demo)'];
+let RQ=[],DL=[],PK=[],TX=[],FACT=0,MON=[['Jun',40],['Jul',65],['Aug',52],['Sep',88],['Oct',110],['Nov',0]];
+let S={role:null,tab:'',fid:'F001',gp:'G1',sel:null,filter:'All'};
+const $=id=>FM.find(f=>f.id==id),G=id=>GPS.find(g=>g.id==id),est=f=>Math.round(f.area*CROPS[f.crop]);
+const date=()=>new Date().toISOString().slice(0,10);
+const lvl=q=>q<20?'Bronze':q<60?'Silver':q<120?'Gold':'Platinum';
+const bd=(s)=>`<span class="b ${/Rejected|Pending|Requested|growing/i.test(s)?'y':/Delivered|Verified|Collected|Accepted/.test(s)?'':'n'}">${s}</span>`;
+function toast(m){const t=document.getElementById('t');t.innerHTML=`<div class="toast">${m}</div>`;setTimeout(()=>t.innerHTML='',2800)}
+// ---- core logic (service layer: swap with API calls later)
+function verifyDelivery(d,w,type){const f=$(d.fid),reg=f.hist.length>=2,base=w*cfg.cr,bonus=reg?Math.round(base*cfg.bonus/100):0,cash=reg?w*cfg.cash:0;
+f.cr+=base+bonus;f.cash+=cash;f.qty+=w;f.hist.push({d:date(),q:w});TX.unshift({fid:f.id,d:date(),q:w,c:base+bonus,cash,pend:true,t:type});
+const g=G(f.gp);g.stock[type]=(g.stock[type]||0)+w;MON[5][1]+=w;d.st='Verified';d.w=w;const r=RQ.find(r=>r.id==d.rq);if(r)r.st='Delivered'}
+// seed history
+[[0,3,'Paddy'],[1,3,'Maize'],[2,2,'Sugarcane'],[3,3,'Paddy'],[4,2,'Ragi']].forEach(([i,n,c])=>{for(let k=0;k<n;k++)verifyDelivery({fid:FM[i].id},12+k*5+i*3,CROPS[c]?c:'Paddy')});
+MON[5][1]=0;GPS.forEach(g=>{});FACT=210;
+RQ=[{id:1,fid:'F004',co:COS[0],st:'Pending',q:est(FM[3]),date:'2026-11-04'},{id:2,fid:'F007',co:COS[1],st:'Accepted',q:est(FM[6]),date:'2026-11-02'}];
+FL[3].st='verified';FL[6].st='ready';
+// ---- views
+const R=()=>{const r=document.getElementById('root');
+if(!S.role){r.innerHTML=`<div class="login"><h1>BioChar Connect</h1><p class="note">Satellite-guided agricultural residue supply chain. Demo build with fictional data. Pick a role:</p>
+${[['company','Biochar Company Admin','Monitor fields, request feedstock, schedule pickups'],['farmer','Farmer','Accept requests, deliver residue, earn credits'],['operator','Gram Panchayat Operator','Verify weight, update inventory, coordinate pickups']].map(x=>`<div class="card" onclick="login('${x[0]}')"><b>${x[1]}</b><div class="note">${x[2]}</div></div>`).join('')}</div>`;return}
+const T={company:['Map','Harvest-ready','Farmers','Panchayats','Inventory','Analytics'],farmer:['Dashboard','Requests','Delivery','Rewards','Register'],operator:['Deliveries','Farmers','Inventory','Pickups','Rates']}[S.role];
+if(!T.includes(S.tab))S.tab=T[0];
+const sw=S.role=='farmer'?`<select onchange="S.fid=this.value;R()">${FM.map(f=>`<option value="${f.id}" ${f.id==S.fid?'selected':''}>${f.id} ${f.name}</option>`)}</select>`:S.role=='operator'?`<select onchange="S.gp=this.value;R()">${GPS.map(g=>`<option value="${g.id}" ${g.id==S.gp?'selected':''}>${g.name}</option>`)}</select>`:'';
+r.innerHTML=`<div class="app"><nav class="side"><h1>BioChar Connect</h1><small>${S.role.toUpperCase()}</small>${T.map(t=>`<button class="${t==S.tab?'on':''}" onclick="S.tab='${t}';R()">${t}</button>`).join('')}<button onclick="S.role=null;R()">Switch role</button></nav>
+<div class="main"><div class="top"><h2>${S.tab}</h2>${sw}</div>${V[S.role+S.tab.replace('-','')]()}</div></div>`};
+const login=r=>{S.role=r;S.tab='';R()};
+const tbl=(h,rows)=>`<div class="tw"><table><tr>${h.map(x=>`<th>${x}</th>`).join('')}</tr>${rows.map(r=>`<tr>${r.map(c=>`<td>${c}</td>`).join('')}</tr>`).join('')||'<tr><td>No records</td></tr>'}</table></div>`;
+const kpi=a=>`<div class="grid">${a.map(x=>`<div class="card kpi"><b>${x[1]}</b><span>${x[0]}</span></div>`).join('')}</div>`;
+const stockOf=g=>Object.values(g.stock).reduce((a,b)=>a+b,0),total=()=>GPS.reduce((a,g)=>a+stockOf(g),0);
+const col=s=>s=='growing'?'#2f9e5f':s=='ready'?'#d9b43c':'#c4493a';
+function sat(f){const fl=FL.find(x=>x.fid==f.id);let c='';for(let i=0;i<40;i++){const v=(i*37+f.area*13)%10;c+=`<rect x="${(i%8)*20}" y="${Math.floor(i/8)*16}" width="20" height="16" fill="${fl.st=='growing'?`hsl(135,${40+v*3}%,${28+v*2}%)`:`hsl(${45-v},${55+v*2}%,${45+v*2}%)`}"/>`}return`<svg viewBox="0 0 160 80" width="100%">${c}</svg><span class="sim">Simulated imagery, NDVI ${fl.ndvi}</span>`}
+const V={
+companyMap(){const ff=FL.filter(x=>S.filter=='All'||G($(x.fid).gp).dist==S.filter),sel=S.sel&&$(S.sel),dists=['All',...new Set(GPS.map(g=>g.dist))];
+return`<div class="two"><div class="card"><div class="top"><select onchange="S.filter=this.value;R()">${dists.map(d=>`<option ${d==S.filter?'selected':''}>${d}</option>`)}</select><span class="sim">Simulated detections (schematic Karnataka map)</span></div>
+<svg viewBox="60 40 340 340" width="100%" style="background:#e9efe0;border-radius:8px"><path d="M80 60 L380 50 L390 200 L330 360 L180 370 L100 300 Z" fill="none" stroke="#9db0a2" stroke-dasharray="4"/>
+${GPS.map(g=>`<text x="${g.x-30}" y="${g.y+48}" font-size="9" fill="#12372a">${g.name}</text>`).join('')}
+${ff.map(x=>`<polygon points="${x.poly.map(p=>p.join(',')).join(' ')}" fill="${col(x.st)}" stroke="${x.fid==S.sel?'#000':'#fff'}" stroke-width="${x.fid==S.sel?2:.8}" style="cursor:pointer" onclick="S.sel='${x.fid}';R()"/>`).join('')}</svg>
+<div class="note"><span style="color:#2f9e5f">■</span> Growing &nbsp;<span style="color:#d9b43c">■</span> Possibly harvest-ready (needs verification) &nbsp;<span style="color:#c4493a">■</span> Verified / priority collection</div></div>
+<div class="card">${sel?`<b>${sel.name}</b><div class="note">${sel.id} · ${sel.vil} · ${G(sel.gp).name}</div><p>${sel.area} acres · ${sel.crop}<br>Harvest: ${FL.find(x=>x.fid==sel.id).harv}<br>Est. residue: ${est(sel)} q</p>${sat(sel)}`:'Click a field polygon for details.'}</div></div>`},
+companyHarvestready(){const rows=FL.filter(x=>x.st!='growing').map(x=>{const f=$(x.fid),r=RQ.find(r=>r.fid==f.id&&r.st!='Rejected'&&r.st!='Delivered');
+return[f.name,f.crop,f.area+' ac',est(f)+' q',f.vil,G(f.gp).name,x.st=='ready'?bd('Pending verification'):bd('Verified'),r?bd(r.st):'-',x.st=='ready'?`<button class="s" onclick="verify('${f.id}')">Verify field</button>`:!r?`<button class="p" onclick="sendReq('${f.id}')">Send Feedstock Request</button>`:''] });
+return`<div class="card"><p class="note">Yellow detection is only an indication of maturity. Verify manually before sending a request.</p>${tbl(['Farmer','Crop','Area','Est. residue','Village','Panchayat','Field','Request','Action'],rows)}</div>
+<div class="card"><b>Request tracker</b>${tbl(['Farmer','Company','Qty','Date','Status','Move'],RQ.map(r=>[$(r.fid).name,r.co,r.q+' q',r.date,bd(r.st),r.st=='Accepted'?`<button class="s" onclick="setRq(${r.id},'Harvesting')">Mark harvesting</button>`:'']))}</div>`},
+companyFarmers(){return`<div class="card">${tbl(['ID','Name','Phone','Village','Panchayat','Land','Crop','Supplied','Credits','History',''],FM.map(f=>[f.id,f.name,f.ph,f.vil,G(f.gp).name,f.area+' ac',f.crop,f.qty+' q',f.cr,f.hist.map(h=>h.q+'q').join(', ')||'-',`<button class="s" onclick="toast('Calling ${f.ph} (simulated)')">Contact</button>`]))}</div>`},
+companyPanchayats(){return`<div class="card">${tbl(['Panchayat','District','Feedstock','Stock (q)','Farmers','Status','Action'],GPS.map(g=>[g.name,g.dist,Object.keys(g.stock).join(', ')||'-',stockOf(g),FM.filter(f=>f.gp==g.id).length,stockOf(g)>0?bd('Stock available'):bd('Pending'),stockOf(g)>0?`<button class="p" onclick="sched('${g.id}')">Schedule Pickup</button>`:'']))}</div>
+<div class="card"><b>Logistics</b>${tbl(['Panchayat','Qty','Status','Next'],PK.map(p=>[G(p.gp).name,p.q+' q',bd(p.st),p.st=='Delivered to Factory'?'':`<button class="s" onclick="adv(${p.id})">Advance</button>`]))}</div>`},
+companyInventory(){const by={};GPS.forEach(g=>Object.entries(g.stock).forEach(([c,q])=>by[c]=(by[c]||0)+q));const t=total();
+return kpi([['At Panchayats (q)',t],['Collected this month (q)',MON[5][1]],['Delivered to factory (q)',FACT],['Biochar potential (t, est. 30%)',((t+FACT)*.3/10).toFixed(1)]])+`<div class="card"><b>By crop</b>${tbl(['Crop','Quintals'],Object.entries(by))}</div><div class="card"><b>Collection history</b>${tbl(['Date','Farmer','Qty','Panchayat'],TX.slice(0,8).map(x=>[x.d,$(x.fid).name,x.q+' q',G($(x.fid).gp).name]))}</div>`},
+companyAnalytics(){const tq=FM.reduce((a,f)=>a+f.qty,0),mx=Math.max(...MON.map(m=>m[1]),1);
+return kpi([['Farmers participating',FM.filter(f=>f.qty>0).length],['Panchayats connected',GPS.length],['Total feedstock (q)',tq],['Burning avoided (t, est.)',(tq/10).toFixed(1)],['CO2e avoided (t, est.)',(tq*.12).toFixed(1)]])+
+`<div class="card"><b>Monthly collection (q)</b><svg viewBox="0 0 360 160" width="100%">${MON.map((m,i)=>{const h=m[1]/mx*110;return`<rect x="${20+i*56}" y="${130-h}" width="36" height="${h}" fill="#1f9d6b" rx="3"/><text x="${38+i*56}" y="146" font-size="10" text-anchor="middle" fill="currentColor">${m[0]}</text><text x="${38+i*56}" y="${124-h}" font-size="10" text-anchor="middle" fill="currentColor">${m[1]}</text>`}).join('')}</svg>
+<p class="note">Environmental figures are illustrative estimates (0.1 t burning avoided and 0.12 t CO2e per quintal assumed). They are not verified carbon credits.</p></div>`},
+farmerDashboard(){const f=$(S.fid),fl=FL.find(x=>x.fid==f.id);return`<div class="card"><b>${f.name}</b> · ${f.id}<div class="note">${f.vil} · ${G(f.gp).name}</div></div>`+kpi([['Land',f.area+' ac'],['Crop',f.crop],['Harvest status',fl.st=='growing'?'Growing':'Possibly ready'],['Supplied (q)',f.qty],['Credits',f.cr],['Cashback (pending)','₹'+f.cash]])+`<div class="card"><b>Supply history</b>${tbl(['Date','Quantity'],f.hist.map(h=>[h.d,h.q+' q']))}</div>`},
+farmerRequests(){return`<div class="card">${tbl(['Company','Crop','Requested','Est. qty','Deliver to','Date','Status','Action'],RQ.filter(r=>r.fid==S.fid).map(r=>[r.co,$(r.fid).crop,'Crop residue (feedstock)',r.q+' q',G($(r.fid).gp).name,r.date,bd(r.st),r.st=='Pending'?`<button class="p" onclick="setRq(${r.id},'Accepted')">Accept</button> <button class="s" onclick="setRq(${r.id},'Rejected')">Reject</button>`:'']))}</div>`},
+farmerDelivery(){const f=$(S.fid),ok=RQ.filter(r=>r.fid==f.id&&(r.st=='Accepted'||r.st=='Harvesting'));
+return`<div class="card"><b>Your collection centre: ${G(f.gp).name}</b>, ${G(f.gp).dist}</div><div class="card"><b>Submit delivery notification</b><br>${ok.length?`<div class="form"><label>Request<select id="dr">${ok.map(r=>`<option value="${r.id}">#${r.id} (est. ${r.q} q)</option>`)}</select></label><label>Approx. quantity (q)<input id="dq" type="number" value="10"></label></div><br><button class="p" onclick="notify()">Submit</button>`:'<span class="note">Accept a request first.</span>'}</div>
+<div class="card"><b>Deliveries</b>${tbl(['ID','Est. qty','Verified weight','Status'],DL.filter(d=>d.fid==f.id&&d.rq).map(d=>['D-'+d.rq,d.q+' q',d.w?d.w+' q':'-',bd(d.st=='Verified'?'Verified (receipt issued)':'Awaiting weighing')]))}</div>`},
+farmerRewards(){const f=$(S.fid);return kpi([['Total credits',f.cr],['Redeemable credits',Math.floor(f.cr*.8)],['Cashback pending (simulated)','₹'+f.cash],['Loyalty',lvl(f.qty)]])+`<div class="card"><b>Transactions</b><p class="note">Cashback shown is simulated or pending. No bank transfer has been made.</p>${tbl(['Date','Qty','Credits','Cashback'],TX.filter(x=>x.fid==f.id).map(x=>[x.d,x.q+' q',x.c,'₹'+x.cash+' (pending)']))}</div>`},
+farmerRegister(){return`<div class="card"><div class="form"><label>Name<input id="rn"></label><label>Mobile<input id="rp"></label><label>Village<input id="rv"></label><label>Gram Panchayat<select id="rg">${GPS.map(g=>`<option value="${g.id}">${g.name}</option>`)}</select></label><label>Land (acres)<input id="ra" type="number" value="3"></label><label>Crop<select id="rc">${Object.keys(CROPS).map(c=>`<option>${c}</option>`)}</select></label><label>Farm location (lat, lng)<input id="rl" value="12.30, 76.65"></label><label>Boundary file (optional)<input type="file"></label></div><br><button class="p" onclick="reg()">Register</button></div>`},
+operatorDeliveries(){const g=S.gp;return`<div class="card"><b>Incoming deliveries</b>${tbl(['Farmer','Crop','Notified','Status','Verify (ID check, weight, type, photo)'],DL.filter(d=>d.rq&&$(d.fid).gp==g&&d.st!='Verified').map(d=>[$(d.fid).name,$(d.fid).crop,d.q+' q',bd('Awaiting weighing'),`<input type="checkbox" id="id${d.rq}"> ID ok <input id="w${d.rq}" type="number" placeholder="kg→q" style="width:70px"> <select id="ty${d.rq}">${Object.keys(CROPS).map(c=>`<option ${c==$(d.fid).crop?'selected':''}>${c}</option>`)}</select> <input type="file" id="ph${d.rq}" accept="image/*" style="width:120px"> <button class="p" onclick="conf(${d.rq})">Confirm</button>`]))}</div>`},
+operatorFarmers(){return`<div class="card">${tbl(['ID','Name','Phone','Land','Crop','Supplied','Loyalty'],FM.filter(f=>f.gp==S.gp).map(f=>[f.id,f.name,f.ph,f.area+' ac',f.crop,f.qty+' q',lvl(f.qty)]))}</div>`},
+operatorInventory(){const g=G(S.gp);return kpi([['Total stock (q)',stockOf(g)]])+`<div class="card">${tbl(['Feedstock','Quintals'],Object.entries(g.stock))}</div>`},
+operatorPickups(){return`<div class="card">${tbl(['Qty','Status','Action'],PK.filter(p=>p.gp==S.gp).map(p=>[p.q+' q',bd(p.st),p.st=='Pickup Requested'?`<button class="p" onclick="adv(${p.id})">Approve and schedule</button>`:p.st=='Vehicle Dispatched'?`<button class="p" onclick="adv(${p.id})">Confirm handover</button>`:'']))}</div>`},
+operatorRates(){return`<div class="card"><div class="form"><label>Credits per quintal<input type="number" value="${cfg.cr}" onchange="cfg.cr=+this.value"></label><label>Regular supplier bonus %<input type="number" value="${cfg.bonus}" onchange="cfg.bonus=+this.value"></label><label>Cashback ₹ per eligible quintal<input type="number" value="${cfg.cash}" onchange="cfg.cash=+this.value"></label></div><p class="note">Regular supplier = 2 or more earlier verified deliveries. Cashback stays pending or simulated until a payment gateway is integrated.</p></div>`}
+};
+// ---- actions
+const verify=id=>{FL.find(x=>x.fid==id).st='verified';toast('Field verified manually. You can now send the request.');R()};
+const sendReq=id=>{const f=$(id);RQ.push({id:RQ.length+1,fid:id,co:COS[0],st:'Pending',q:est(f),date:date()});toast('Request sent to '+f.name);R()};
+const setRq=(id,s)=>{RQ.find(r=>r.id==id).st=s;toast('Status: '+s);R()};
+const notify=()=>{const id=+document.getElementById('dr').value;DL.push({rq:id,fid:S.fid,q:+document.getElementById('dq').value,st:'Submitted'});setRq(id,'Harvesting')};
+const conf=id=>{const d=DL.find(x=>x.rq==id),w=+document.getElementById('w'+id).value;if(!document.getElementById('id'+id).checked||!w)return toast('Tick ID verified and enter weight in quintals.');
+verifyDelivery(d,w,document.getElementById('ty'+id).value);toast(w+' q confirmed. Inventory and farmer ledger updated.');R()};
+const sched=g=>{PK.push({id:PK.length+1,gp:g,q:stockOf(G(g)),st:'Pickup Requested'});toast('Pickup requested');R()};
+const ST=['Pickup Requested','Scheduled','Vehicle Dispatched','Collected','Delivered to Factory'];
+const adv=id=>{const p=PK.find(x=>x.id==id);p.st=ST[ST.indexOf(p.st)+1];if(p.st=='Collected'){const g=G(p.gp);p.q=stockOf(g);g.stock={}}if(p.st=='Delivered to Factory'){FACT+=p.q}toast(p.st);R()};
+const reg=()=>{const n=document.getElementById('rn').value;if(!n)return toast('Enter a name');const i=FM.length,g=G(document.getElementById('rg').value),c=document.getElementById('rc').value;
+FM.push({id:'F'+String(i+1).padStart(3,'0'),name:n,ph:document.getElementById('rp').value,vil:document.getElementById('rv').value,gp:g.id,area:+document.getElementById('ra').value,crop:c,cr:0,cash:0,qty:0,hist:[]});FL.push({id:'FLD-'+(100+i),fid:FM[i].id,st:'growing',ndvi:'0.65',harv:'TBD',poly:poly(g,i)});S.fid=FM[i].id;toast('Registered. Farmer ID '+FM[i].id);S.tab='Dashboard';R()};
+R();
+</script></body></html>
